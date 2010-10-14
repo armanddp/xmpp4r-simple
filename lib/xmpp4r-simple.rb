@@ -107,14 +107,19 @@ module Jabber
     # Create a new Jabber::Simple client. You will be automatically connected
     # to the Jabber server and your status message will be set to the string
     # passed in as the status_message argument.
+    # If you'd like to connect to a different talk server than the one which would
+    # be guessed from your jid, you may provide a server. For example, to connect
+    # to the gmail talk servers with a jid that doesn't end in @gmail.com, just provide
+    # 'talk.l.google.com' as the server. You may leave server as nil to use the default.
     #
-    # jabber = Jabber::Simple.new("me@example.com", "password", nil, "Chat with me - Please!")
-    def initialize(jid, password, status = nil, status_message = "Available", host = nil, port = 5222)
+    # jabber = Jabber::Simple.new("me@example.com", "password", "Chat with me - Please!")
+    def initialize(jid, password, status = nil, status_message = "Available", host = nil, port = 5222, server=nil)
       @jid = jid
       @password = password
       @host = host
       @port = port
       @disconnected = false
+      @server = server
       status(status, status_message)
       start_deferred_delivery_thread
       
@@ -667,6 +672,7 @@ module Jabber
       jid = JID.new(@jid)
       my_client = Client.new(@jid)
       my_client.connect(@host, @port)
+      # (TODO: test w/ gtalk --danbri) my_client.connect(@server)
       my_client.auth(@password)
       self.client = my_client
 
