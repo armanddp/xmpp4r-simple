@@ -51,6 +51,9 @@ module Jabber
     end
   end
 
+  class RegistrationError < StandardError #:nodoc:
+  end
+
   class Contact #:nodoc:
 
     include DRb::DRbUndumped if defined?(DRb::DRbUndumped)
@@ -103,6 +106,9 @@ module Jabber
   class Simple
 
     include DRb::DRbUndumped if defined?(DRb::DRbUndumped)
+    def self.register(jid, password, status = nil, status_message = "Available")
+      new(jid, password, status, status_message, true)
+    end
 
     # Create a new Jabber::Simple client. You will be automatically connected
     # to the Jabber server and your status message will be set to the string
@@ -113,13 +119,14 @@ module Jabber
     # 'talk.l.google.com' as the server. You may leave server as nil to use the default.
     #
     # jabber = Jabber::Simple.new("me@example.com", "password", "Chat with me - Please!")
-    def initialize(jid, password, status = nil, status_message = "Available", host = nil, port = 5222, server=nil)
+    def initialize(jid, password, status = nil, status_message = "Available", host = nil, port = 5222, server=nil, register = false)
       @jid = jid
       @password = password
       @host = host
       @port = port
       @disconnected = false
       @server = server
+      register!(password) if @register = register
       status(status, status_message)
       start_deferred_delivery_thread
       
@@ -444,13 +451,38 @@ module Jabber
       connect!() unless connected?
       @client
     end
-    
+    def register!(password)
+      attempt! {
+        begin
+          client.register(password)
+          @register = false
+          disconnect
+          reconnect
+        rescue Jabber::ErrorException => e
+          error_msg = "Error registering: #{e.error.text}\n\n"
+          if e.error.type == :modify
+            error_msg += "Accepted registration information:\n"
+            instructions, fields = client.register_info
+            fields.each { |info|
+              error_msg += "* #{info}\n"
+            }
+            error_msg += "(#{instructions})"
+          end
+          raise RegistrationError, error_msg
+        end
+      }
+    end 
     # Send a Jabber stanza over-the-wire.
     def send!(msg)
+	attempt! {
+	client.send(msg)
+	}
+    end
+    def attempt!
       attempts = 0
       begin
         attempts += 1
-        client.send(msg)
+	yield
       rescue Errno::EPIPE, IOError => e
         sleep 1
         disconnect
