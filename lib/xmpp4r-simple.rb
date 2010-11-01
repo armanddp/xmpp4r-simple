@@ -39,6 +39,9 @@ module Jabber
   class AlreadySet < StandardError #:nodoc:
   end
   
+  class RegistrationError < StandardError #:nodoc:
+  end  
+  
   module Roster  
     class RosterItem
       def chat_state
@@ -51,8 +54,7 @@ module Jabber
     end
   end
 
-  class RegistrationError < StandardError #:nodoc:
-  end
+
 
   class Contact #:nodoc:
 
@@ -106,8 +108,9 @@ module Jabber
   class Simple
 
     include DRb::DRbUndumped if defined?(DRb::DRbUndumped)
+    
     def self.register(jid, password, status = nil, status_message = "Available")
-      new(jid, password, status, status_message, true)
+      new(jid, password, status, status_message, nil, 5222, nil, true)
     end
 
     # Create a new Jabber::Simple client. You will be automatically connected
@@ -458,8 +461,8 @@ module Jabber
           @register = false
           disconnect
           reconnect
-        rescue Jabber::ErrorException => e
-          error_msg = "Error registering: #{e.error.text}\n\n"
+        rescue Exception => e
+          error_msg = "Error registering: #{e.message}\n\n"
           if e.error.type == :modify
             error_msg += "Accepted registration information:\n"
             instructions, fields = client.register_info
@@ -705,12 +708,12 @@ module Jabber
       my_client = Client.new(@jid)
       my_client.connect(@host, @port)
       # (TODO: test w/ gtalk --danbri) my_client.connect(@server)
-      my_client.auth(@password)
+			my_client.auth(@password) unless @register      
       self.client = my_client
 
       # Post-connect
-      register_default_callbacks
-      status(@presence, @status_message)
+      register_default_callbacks unless @register
+      status(@presence, @status_message) unless @register
       @connect_mutex.unlock
     end
 
