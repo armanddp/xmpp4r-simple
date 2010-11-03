@@ -463,7 +463,7 @@ module Jabber
           reconnect
         rescue Exception => e
           error_msg = "Error registering: #{e.message}\n\n"
-          if e.error.type == :modify
+          if e.respond_to?('error') && e.error.type == :modify
             error_msg += "Accepted registration information:\n"
             instructions, fields = client.register_info
             fields.each { |info|
