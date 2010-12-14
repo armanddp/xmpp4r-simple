@@ -2,7 +2,7 @@ Gem::Specification.new do |s|
   s.add_dependency('xmpp4r', '>= 0.3.2')
   # s.add_development_dependency('rake')
   # s.add_development_dependency('rcov')
-  s.name = "pyu-xmpp4r-simple" 
+  s.name = "xmpp4r-simple" 
   s.version = "0.8.8" 
   s.author = "Blaine Cook" 
   s.email = "romeda@gmail.com" 
